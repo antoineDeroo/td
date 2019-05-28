@@ -7,8 +7,6 @@ int valeurCurseur,nbCasesX,nbCasesY,posXCurseur,posYCurseur;
 
 void setup(){
   
-  int a = 0;
-  
   textSize(30);
   background(255);
   size(900, 900); 
