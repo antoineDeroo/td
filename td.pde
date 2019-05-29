@@ -1,4 +1,4 @@
-int tempsAttendu,intervalleLancers,ancienneDate,nbDeCasesParCoteDeTour;
+int tempsAttendu,intervalleLancers,ancienneDate,nbDeCasesParCoteDeTour,nbToursX,nbToursY;
 float largTer,hautTer,vMin,vMax,minXIni,distanceMin,coteCase,coteTour;
 ArrayList<Monstre> monstres;
 Case[][] grille;
@@ -10,19 +10,21 @@ void setup(){
   
   textSize(30);
   background(255);
-  size(900, 900); 
+  size(600, 600); 
   smooth();
-  frameRate(50);
-  noStroke();
-  largTer=900;
-  hautTer=900;
+  frameRate(60);
+  stroke(1);
+  largTer=600;
+  hautTer=600;
   
-  nbDeCasesParCoteDeTour = 8;
-  distanceMin= 5;
+  nbDeCasesParCoteDeTour = 4;
+  distanceMin= 1;
   
   valeurCurseur = 1;
-  nbCasesX = 15*nbDeCasesParCoteDeTour;
-  nbCasesY = 15*nbDeCasesParCoteDeTour;
+  nbToursX = 8;
+  nbToursY = 8;
+  nbCasesX =nbToursX*nbDeCasesParCoteDeTour;
+  nbCasesY = nbToursY*nbDeCasesParCoteDeTour;
   coteCase = largTer/nbCasesX;
   coteTour = coteCase*nbDeCasesParCoteDeTour;
 
@@ -34,8 +36,8 @@ void setup(){
   }
   
   monstres = new ArrayList<Monstre>();
-  dest = grille[nbCasesY-1][0];
-  monstres.add(new Monstre(0,hautTer-4,0.1,dest,20,40));
+  dest = grille[nbCasesX-1][0];
+  monstres.add(new Monstre(0,hautTer-4,0.05,20,40));
   
   //Monstre(float x,float y,float vitesse,Case dest,float l,float h){
 }
@@ -53,6 +55,7 @@ void draw(){
 void update(int dt){
   posXCurseur = int((mouseX-coteTour/4)/(coteTour/2));
   posYCurseur = int((mouseY-coteTour/4)/(coteTour/2));
+  //println(posXCurseur);
   for(Monstre m:monstres){
     m.update(dt);
   }
@@ -65,7 +68,7 @@ void render(){
   for(int i=0;i<nbCasesX;i++){
     for(int j=0;j<nbCasesY;j++){
       if(grille[i][j].tourPosee){
-        rect(i*coteTour/2,j*coteTour/2,coteTour,coteTour);
+        rect(i*coteCase,j*coteCase,coteTour,coteTour);
       }
     }
   }
@@ -74,24 +77,40 @@ void render(){
 void trouverPlusCourtChemin(Monstre m){
   ArrayList<Case> resteAVisiter = new ArrayList<Case>();
   ArrayList<Case> dejaVus = new ArrayList<Case>();
-  resteAVisiter.add(m.getCase());
+  Case ori = grille[m.getCase().x][m.getCase().y];
+  ori.coutDepuisDep=0;
+  resteAVisiter.add(ori);
+  //println("la case qu'on ajoute est "+ori);
+  ori.dirPred="depa";
+  dest.dirPred="arri";
   while(resteAVisiter.size()!=0 && !resteAVisiter.contains(dest)){
     i++;
-    println(i+ "ème itération");
+    //println(i+ "ème itération");
     //on trouve le meilleur heuristique
-    float min=9999;
+    float min=99999;
     Case elu = new Case();
-    for(Case p:resteAVisiter){
-      if(p.coutT()<min){
-        min=p.coutT();
-        elu=p;
+    //println(resteAVisiter);
+    if(resteAVisiter.size()==1){
+      elu = resteAVisiter.get(0);
+    }
+    else{
+      for(Case c:resteAVisiter){
+      //println("caca coutT="+c.coutT()+" et min="+min);
+        if(c.coutT()<min){
+          
+          min=c.coutT();
+          elu=c;
+        }
       }
     }
+    
     ///////////////////////////////
+    //println("elu.x="+elu.x);
+    //println("elu.y="+elu.y);
     dejaVus.add(elu);
     resteAVisiter.remove(elu);
-    println("elu.x="+elu.x);
-    println("elu.y="+elu.y);
+    //println("elu.x="+elu.x);
+    //println("elu.y="+elu.y);
     if(elu.x>0){
       if(elu.y>0){
         if(!grille[elu.x-1][elu.y-1].occupee && !dejaVus.contains(grille[elu.x-1][elu.y-1])){  //haut à gauche
@@ -99,7 +118,8 @@ void trouverPlusCourtChemin(Monstre m){
             grille[elu.x-1][elu.y-1].coutDepuisDep = elu.coutDepuisDep + sqrt(2)*coteCase;
             resteAVisiter.add(grille[elu.x-1][elu.y-1]);
             grille[elu.x-1][elu.y-1].pred=elu;
-            println("hg");
+            //println("hg");
+            grille[elu.x-1][elu.y-1].dirPred = "bd";
           }
         }
         if(!grille[elu.x][elu.y-1].occupee && !dejaVus.contains(grille[elu.x][elu.y-1])){ //haut
@@ -107,7 +127,8 @@ void trouverPlusCourtChemin(Monstre m){
             grille[elu.x][elu.y-1].coutDepuisDep = elu.coutDepuisDep + coteCase;
             resteAVisiter.add(grille[elu.x][elu.y-1]);
             grille[elu.x][elu.y-1].pred=elu;
-            println("h");
+            //println("h");
+            grille[elu.x][elu.y-1].dirPred = "b";
           }
         }
         if(!grille[elu.x-1][elu.y].occupee && !dejaVus.contains(grille[elu.x-1][elu.y])){ //gauche
@@ -115,7 +136,8 @@ void trouverPlusCourtChemin(Monstre m){
             grille[elu.x-1][elu.y].coutDepuisDep = elu.coutDepuisDep + coteCase;
             resteAVisiter.add(grille[elu.x-1][elu.y]);
             grille[elu.x-1][elu.y].pred=elu;
-            println("g");
+            //println("g");
+            grille[elu.x-1][elu.y].dirPred = "d";
           }
         }
       }
@@ -125,7 +147,8 @@ void trouverPlusCourtChemin(Monstre m){
             grille[elu.x][elu.y+1].coutDepuisDep = elu.coutDepuisDep + coteCase;
             resteAVisiter.add(grille[elu.x][elu.y+1]);
             grille[elu.x][elu.y+1].pred=elu;
-            println("b");
+            //println("b");
+            grille[elu.x][elu.y+1].dirPred = "h";
           }
         }
         if(!grille[elu.x-1][elu.y+1].occupee && !dejaVus.contains(grille[elu.x-1][elu.y+1])){  //bas à gauche
@@ -133,7 +156,8 @@ void trouverPlusCourtChemin(Monstre m){
             grille[elu.x-1][elu.y+1].coutDepuisDep = elu.coutDepuisDep + sqrt(2)*coteCase;
             resteAVisiter.add(grille[elu.x-1][elu.y+1]);
             grille[elu.x-1][elu.y+1].pred=elu;
-            println("bg");
+            //println("bg");
+            grille[elu.x-1][elu.y+1].dirPred = "hd";
           }
         }
       }
@@ -150,11 +174,12 @@ void trouverPlusCourtChemin(Monstre m){
             grille[elu.x+1][elu.y-1].coutDepuisDep = elu.coutDepuisDep + sqrt(2)*coteCase;
             resteAVisiter.add(grille[elu.x+1][elu.y-1]);
             grille[elu.x+1][elu.y-1].pred=elu;
-            println("hd");
+            //println("hd");
             if(grille[elu.x+1][elu.y-1].equals(dest)){
-              println("on a trouve dest!");
-              println("le pred de dest="+dest.pred);
+              //println("on a trouve dest!");
+              //println("le pred de dest="+dest.pred);
             }
+            grille[elu.x+1][elu.y-1].dirPred = "bg";
           }
         }
         if(!grille[elu.x+1][elu.y].occupee && !dejaVus.contains(grille[elu.x+1][elu.y])){ //droite
@@ -162,7 +187,8 @@ void trouverPlusCourtChemin(Monstre m){
             grille[elu.x+1][elu.y].coutDepuisDep = elu.coutDepuisDep + coteCase;
             resteAVisiter.add(grille[elu.x+1][elu.y]);
             grille[elu.x+1][elu.y].pred=elu;
-            println("d");
+            //println("d");
+            grille[elu.x+1][elu.y].dirPred = "g";
           }
         }
       }
@@ -172,47 +198,96 @@ void trouverPlusCourtChemin(Monstre m){
             grille[elu.x+1][elu.y+1].coutDepuisDep = elu.coutDepuisDep + sqrt(2)*coteCase;
             resteAVisiter.add(grille[elu.x+1][elu.y+1]);
             grille[elu.x+1][elu.y+1].pred=elu;
-            println("bd");
+            //println("bd");
+            grille[elu.x+1][elu.y+1].dirPred = "hg";
           }
         }
       }
     }
     
   }
-
-  println("on est sorti de la boucle! resteAVisiter.size()="+resteAVisiter.size()+" et resteAVisiter.contains(dest)="+resteAVisiter.contains(dest));
-  ArrayList<Case> destinations = new ArrayList<Case>();
-  Case c = new Case(dest);
-  println("c="+c);
-  println("m="+m);
-  while(!c.equals(m.getCase())){
-    println("c="+c);
-    println("c.pred="+c.pred);
-    destinations.add(c);
-    c=c.pred;
+  if(!resteAVisiter.contains(dest)){  //erreur fatale
+    //rien
+    println("hahahah");
   }
-  m.dest = destinations;
+  else{
+    for(int i=0;i<nbDeCasesParCoteDeTour;i++){
+      for(int j=0;j<nbDeCasesParCoteDeTour;j++){
+        grille[posXCurseur*2+i][posYCurseur*2+j].occupee=true;
+      }
+    }
+    grille[posXCurseur*2][posYCurseur*2].tourPosee=true;
+    
+    //println("on est sorti de la boucle! resteAVisiter.size()="+resteAVisiter.size()+" et resteAVisiter.contains(dest)="+resteAVisiter.contains(dest));
+    ArrayList<Case> destinations = new ArrayList<Case>();
+    Case c = new Case(dest);
+    
+    
+    //affichage de la grille
+    /*for(int j=0;j<nbCasesY;j++){
+      String s = "";
+      for(int i=0;i<nbCasesX;i++){
+        s+=String.format( "[%4s]",grille[i][j].dirPred  )+" ";
+      }
+      println(s);
+    }
+    String s = "";
+    for(int i=0;i<nbCasesX;i++){
+      s+="=======";
+    }
+    println(s);*/
+    
+    //creation de la suite des destinations
+    while(!c.equals(m.getCase())){
+      //println("c="+c);
+      //println("c.pred="+c.pred);
+      destinations.add(c);
+      c=c.pred;
+    }
+    
+    //copiage des destinations
+    m.dests=new ArrayList<Case>();
+    for(int i=destinations.size()-1;i>=0;i--){
+      m.dests.add(destinations.get(i));
+    }
+    
+    //reinit des cases
+    for(int j=0;j<nbCasesY;j++){
+      for(int i=0;i<nbCasesX;i++){
+        grille[i][j].coutDepuisDep=99999999;
+        grille[i][j].dirPred=null;
+        grille[i][j].pred=null;
+      }
+    }
+  }
 }
 
 
 class Monstre{
   float x,y,vitesse,l,h;
-  ArrayList<Case> dest;
-  Monstre(float x,float y,float vitesse,Case dest,float l,float h){
+  ArrayList<Case> dests;
+  Monstre(float x,float y,float vitesse,float l,float h){
     this.x=x;
     this.y=y;
     this.vitesse=vitesse;
-    this.dest = new ArrayList<Case>();
-    this.dest.add(dest);
+    this.dests = new ArrayList<Case>();
+    this.dests.add(dest);
     this.l=l;
     this.h=h;
+    trouverPlusCourtChemin(this);
   }
   void update(int dt){
-    float dX = dest.get(0).x-x/coteCase;
-    float dY = dest.get(0).y-y/coteCase;
+    //println("destinations="+dests);
+    float dX = dests.get(0).x-x/coteCase;
+    float dY = dests.get(0).y-y/coteCase;
     float distance = sqrt(pow(dX,2)+pow(dY,2));
     if(distance<=distanceMin){
-      println("arrivey!");
+      if(dests.size()==1){
+        //println("arrivey!");
+      }
+      else{
+        dests.remove(0);
+      }
     }
     else{
       float cosinus = dX/distance;
@@ -245,11 +320,12 @@ class Case{
   float heuristique,coutDepuisDep;
   boolean occupee,tourPosee;
   Case pred;
+  String dirPred;
   Case(int x,int y,int xDest,int yDest){
     this.x=x;
     this.y=y;
     heuristique=sqrt(pow(x-xDest,2)+pow(y-yDest,2))*coteCase;
-    coutDepuisDep=999999;
+    coutDepuisDep=99999999;
     occupee=false;
     pred=null;
   }
@@ -276,11 +352,7 @@ class Case{
 }
 
 void mouseClicked(){
-  grille[posXCurseur][posYCurseur].occupee=true;
-  grille[posXCurseur][posYCurseur].tourPosee=true;
-  grille[posXCurseur+1][posYCurseur].occupee=true;
-  grille[posXCurseur][posYCurseur+1].occupee=true;
-  grille[posXCurseur+1][posYCurseur+1].occupee=true;
+  
   for(Monstre m:monstres){
     trouverPlusCourtChemin(m);
   }
