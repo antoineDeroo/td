@@ -5,6 +5,8 @@ Case[][] grille;
 Case dest;
 int valeurCurseur,nbCasesX,nbCasesY,posXCurseur,posYCurseur;
 int i=-1;
+boolean leftMouseClicked=false,rightMouseClicked=false;
+
 
 void setup(){
   
@@ -18,7 +20,10 @@ void setup(){
   hautTer=600;
   
   nbDeCasesParCoteDeTour = 4;
-  distanceMin= 1;
+  distanceMin= 0.1;
+  
+  intervalleLancers = 400;
+  tempsAttendu = 0;
   
   valeurCurseur = 1;
   nbToursX = 8;
@@ -37,7 +42,7 @@ void setup(){
   
   monstres = new ArrayList<Monstre>();
   dest = grille[nbCasesX-1][0];
-  monstres.add(new Monstre(0,hautTer-4,0.05,20,40));
+  monstres.add(new Monstre(0,hautTer-4,0.08,20,40));
   
   //Monstre(float x,float y,float vitesse,Case dest,float l,float h){
 }
@@ -56,15 +61,32 @@ void update(int dt){
   posXCurseur = int((mouseX-coteTour/4)/(coteTour/2));
   posYCurseur = int((mouseY-coteTour/4)/(coteTour/2));
   //println(posXCurseur);
+  if(leftMouseClicked){
+    poserTour(posXCurseur*2,posYCurseur*2);
+    leftMouseClicked=false;
+  }
+  if(rightMouseClicked){
+    enleverTour(posXCurseur*2-nbDeCasesParCoteDeTour/2,posYCurseur*2-nbDeCasesParCoteDeTour/2);
+    rightMouseClicked=false;
+  }
+  for(int i=monstres.size()-1;i>=0;i--){
+    if(monstres.get(i).aSupr){
+      monstres.remove(i);
+      println("remove");
+    }
+  }
   for(Monstre m:monstres){
     m.update(dt);
   }
+  tempsAttendu+=dt;
+  if(tempsAttendu>=intervalleLancers){
+    tempsAttendu=0;
+    monstres.add(new Monstre(0,hautTer-4,0.08,20,40));
+  }
 }
 void render(){
-  rect(posXCurseur*coteTour/2,posYCurseur*coteTour/2,coteTour,coteTour);
-  for(Monstre m:monstres){
-    m.render();
-  }
+  
+  
   for(int i=0;i<nbCasesX;i++){
     for(int j=0;j<nbCasesY;j++){
       if(grille[i][j].tourPosee){
@@ -72,9 +94,80 @@ void render(){
       }
     }
   }
+  for(Monstre m:monstres){
+    m.render();
+  }
+  fill(255);
+  rect(posXCurseur*coteTour/2,posYCurseur*coteTour/2,coteTour,coteTour);
 }
 
-void trouverPlusCourtChemin(Monstre m){
+void enleverTour(int i,int j){
+  println("enlever tour "+i+" "+j);
+  int iTP = -1;
+  int jTP = -1;
+  boolean letsgo = false;
+  for(int a=0;a<nbDeCasesParCoteDeTour;a++){
+    for(int b=0;b<nbDeCasesParCoteDeTour;b++){
+      if(grille[i+a][j+b].tourPosee){
+        letsgo=true;
+        iTP = i+a;
+        jTP = j+b;
+      }
+    }
+  }
+  if(letsgo){
+    println("enlever tour vraiment "+i+" "+j);
+    for(int a=0;a<nbDeCasesParCoteDeTour;a++){
+      for(int b=0;b<nbDeCasesParCoteDeTour;b++){
+        grille[iTP+a][jTP+b].tourPosee=false;
+        grille[iTP+a][jTP+b].occupee=false;
+      }
+    }
+    for(Monstre m:monstres){
+      trouverPlusCourtChemin(m,false);
+    }
+  }
+}
+
+void poserTour(int i,int j){
+  println("posey tour "+i+" "+j);
+  boolean letsgo = true;
+  for(int a=0;a<nbDeCasesParCoteDeTour;a++){
+    for(int b=0;b<nbDeCasesParCoteDeTour;b++){
+      if(grille[i+a][j+b].occupee){
+        letsgo=false;
+      }
+    }
+  }
+  if(letsgo){
+    println("posey tour vraiment "+i+" "+j);
+    for(Monstre m:monstres){
+      trouverPlusCourtChemin(m,true);
+    }
+  }
+}
+
+void trouverPlusCourtChemin(Monstre m, boolean newtour){
+  
+  if(newtour){
+    for(int i=0;i<nbDeCasesParCoteDeTour;i++){
+      for(int j=0;j<nbDeCasesParCoteDeTour;j++){
+        grille[posXCurseur*2+i][posYCurseur*2+j].occupee=true;
+      }
+    }
+    grille[posXCurseur*2][posYCurseur*2].tourPosee=true;
+  }
+  
+  /*boolean erreur=false;
+  for(int i=0;i<nbCasesX;i++){
+    for(int j=0;j<nbCasesY;j++){
+      if(grille[i][j].!=null){
+        erreur=true;
+      }
+    }
+  }
+  println("erreur? "+erreur);*/
+  //println(newtour);
   ArrayList<Case> resteAVisiter = new ArrayList<Case>();
   ArrayList<Case> dejaVus = new ArrayList<Case>();
   Case ori = grille[m.getCase().x][m.getCase().y];
@@ -113,7 +206,7 @@ void trouverPlusCourtChemin(Monstre m){
     //println("elu.y="+elu.y);
     if(elu.x>0){
       if(elu.y>0){
-        if(!grille[elu.x-1][elu.y-1].occupee && !dejaVus.contains(grille[elu.x-1][elu.y-1])){  //haut à gauche
+        if(!grille[elu.x-1][elu.y-1].occupee && !grille[elu.x][elu.y-1].occupee && !grille[elu.x-1][elu.y].occupee && !dejaVus.contains(grille[elu.x-1][elu.y-1])){  //haut à gauche haut gauche
           if(grille[elu.x-1][elu.y-1].coutDepuisDep > elu.coutDepuisDep + sqrt(2)*coteCase){
             grille[elu.x-1][elu.y-1].coutDepuisDep = elu.coutDepuisDep + sqrt(2)*coteCase;
             resteAVisiter.add(grille[elu.x-1][elu.y-1]);
@@ -151,7 +244,7 @@ void trouverPlusCourtChemin(Monstre m){
             grille[elu.x][elu.y+1].dirPred = "h";
           }
         }
-        if(!grille[elu.x-1][elu.y+1].occupee && !dejaVus.contains(grille[elu.x-1][elu.y+1])){  //bas à gauche
+        if(!grille[elu.x-1][elu.y+1].occupee && !grille[elu.x][elu.y+1].occupee && !grille[elu.x-1][elu.y].occupee && !dejaVus.contains(grille[elu.x-1][elu.y+1])){  //bas à gauche bas gauche
           if(grille[elu.x-1][elu.y+1].coutDepuisDep > elu.coutDepuisDep + sqrt(2)*coteCase){
             grille[elu.x-1][elu.y+1].coutDepuisDep = elu.coutDepuisDep + sqrt(2)*coteCase;
             resteAVisiter.add(grille[elu.x-1][elu.y+1]);
@@ -165,7 +258,7 @@ void trouverPlusCourtChemin(Monstre m){
     if(elu.x<nbCasesX-1){
       if(elu.y>0){
         //println("a");
-        if(!grille[elu.x+1][elu.y-1].occupee && !dejaVus.contains(grille[elu.x+1][elu.y-1])){  //haut à droite
+        if(!grille[elu.x+1][elu.y-1].occupee && !grille[elu.x][elu.y-1].occupee && !grille[elu.x+1][elu.y].occupee && !dejaVus.contains(grille[elu.x+1][elu.y-1])){  //haut à droite haut droite
           //println("b");
           //println("grille[elu.x+1][elu.y-1].coutDepuisDep=" + grille[elu.x+1][elu.y-1].coutDepuisDep);
           //println("elu.coutDepuisDep + sqrt(2)*coteCase=" + (elu.coutDepuisDep + sqrt(2)*coteCase));
@@ -193,7 +286,7 @@ void trouverPlusCourtChemin(Monstre m){
         }
       }
       if(elu.y<nbCasesY-1){
-        if(!grille[elu.x+1][elu.y+1].occupee && !dejaVus.contains(grille[elu.x+1][elu.y+1])){  //bas à droite
+        if(!grille[elu.x+1][elu.y+1].occupee && !grille[elu.x][elu.y+1].occupee && !grille[elu.x+1][elu.y].occupee && !dejaVus.contains(grille[elu.x+1][elu.y+1])){  //bas à droite bas droite
           if(grille[elu.x+1][elu.y+1].coutDepuisDep > elu.coutDepuisDep + sqrt(2)*coteCase){
             grille[elu.x+1][elu.y+1].coutDepuisDep = elu.coutDepuisDep + sqrt(2)*coteCase;
             resteAVisiter.add(grille[elu.x+1][elu.y+1]);
@@ -207,37 +300,57 @@ void trouverPlusCourtChemin(Monstre m){
     
   }
   if(!resteAVisiter.contains(dest)){  //erreur fatale
-    //rien
-    println("hahahah");
+    println("erreur fatale");
+    if(newtour){
+      for(int i=0;i<nbDeCasesParCoteDeTour;i++){
+        for(int j=0;j<nbDeCasesParCoteDeTour;j++){
+          grille[posXCurseur*2+i][posYCurseur*2+j].occupee=false;
+        }
+      }
+      grille[posXCurseur*2][posYCurseur*2].tourPosee=false;
+    }
   }
   else{
-    for(int i=0;i<nbDeCasesParCoteDeTour;i++){
-      for(int j=0;j<nbDeCasesParCoteDeTour;j++){
-        grille[posXCurseur*2+i][posYCurseur*2+j].occupee=true;
-      }
-    }
-    grille[posXCurseur*2][posYCurseur*2].tourPosee=true;
-    
     //println("on est sorti de la boucle! resteAVisiter.size()="+resteAVisiter.size()+" et resteAVisiter.contains(dest)="+resteAVisiter.contains(dest));
-    ArrayList<Case> destinations = new ArrayList<Case>();
-    Case c = new Case(dest);
     
     
-    //affichage de la grille
+    //affichage de la grille occupee
+    //println("occupey");
     /*for(int j=0;j<nbCasesY;j++){
       String s = "";
       for(int i=0;i<nbCasesX;i++){
-        s+=String.format( "[%4s]",grille[i][j].dirPred  )+" ";
+        if(grille[i][j].occupee){
+          s+="[     ] ";
+        }
+        else{
+          s+=String.format("[%2d %2d] ",i,j);
+        }
       }
       println(s);
     }
     String s = "";
     for(int i=0;i<nbCasesX;i++){
-      s+="=======";
+      s+="======= ";
     }
-    println(s);*/
-    
+    println(s);
+    //affichage de la grille du chemin
+    println("chemin");
+    for(int j=0;j<nbCasesY;j++){
+      s = "";
+      for(int i=0;i<nbCasesX;i++){
+        s+=String.format( "[%5s]",grille[i][j].dirPred)+" ";
+      }
+      println(s);
+    }
+    s = "";
+    for(int i=0;i<nbCasesX;i++){
+      s+="======= ";
+    }
+    println(s);
+    */
     //creation de la suite des destinations
+    ArrayList<Case> destinations = new ArrayList<Case>();
+    Case c = new Case(dest);
     while(!c.equals(m.getCase())){
       //println("c="+c);
       //println("c.pred="+c.pred);
@@ -246,6 +359,7 @@ void trouverPlusCourtChemin(Monstre m){
     }
     
     //copiage des destinations
+    //println("on affecte le chemin: "+destinations);
     m.dests=new ArrayList<Case>();
     for(int i=destinations.size()-1;i>=0;i--){
       m.dests.add(destinations.get(i));
@@ -266,6 +380,7 @@ void trouverPlusCourtChemin(Monstre m){
 class Monstre{
   float x,y,vitesse,l,h;
   ArrayList<Case> dests;
+  boolean aSupr;
   Monstre(float x,float y,float vitesse,float l,float h){
     this.x=x;
     this.y=y;
@@ -274,7 +389,8 @@ class Monstre{
     this.dests.add(dest);
     this.l=l;
     this.h=h;
-    trouverPlusCourtChemin(this);
+    this.aSupr=false;
+    trouverPlusCourtChemin(this,false);
   }
   void update(int dt){
     //println("destinations="+dests);
@@ -283,7 +399,8 @@ class Monstre{
     float distance = sqrt(pow(dX,2)+pow(dY,2));
     if(distance<=distanceMin){
       if(dests.size()==1){
-        //println("arrivey!");
+        println("arrivey!");
+        aSupr=true;
       }
       else{
         dests.remove(0);
@@ -297,6 +414,7 @@ class Monstre{
     }  
   }
   void render(){
+    fill(200,50,75);
     ellipse(x,y,l,h);
   }
   Case getCase(){
@@ -352,8 +470,10 @@ class Case{
 }
 
 void mouseClicked(){
-  
-  for(Monstre m:monstres){
-    trouverPlusCourtChemin(m);
+  if(mouseButton==LEFT){
+    leftMouseClicked=true;
+  }
+  if(mouseButton==RIGHT){
+    rightMouseClicked=true;
   }
 }
